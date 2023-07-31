@@ -1,0 +1,12 @@
+Glorious-Eggroll/
+mk/
+gstkrkr-i386.so
+gstkrkr-x86_64.so
+krkrwine-i386.dll
+krkrwine-x86_64.dll
+run32.exe
+run64.exe
+*.wmv
+*.WMV
+*.mpg
+*.mpeg
