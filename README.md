@@ -6,7 +6,7 @@ This program implements various missing functionality in Wine / Proton, such tha
 Installation - Linux/Proton
 ---------------------------
 
-Simply run ./install.py ~/steam/steamapps/common/Proton\ 8.0/, and it will install into every current and future game using that Proton. Installing krkrwine into Glorious Eggroll should work too, though this is untested.
+Simply download and extract [a release](https://github.com/Alcaro/krkrwine/releases), run ./install.py ~/steam/steamapps/common/Proton\ 8.0/, and it will install into every current and future game using that Proton. Installing krkrwine into Glorious Eggroll should work too, though this is untested.
 
 krkrwine does not replace any existing files, and Steam's updater ignores files it doesn't recognize; therefore, you don't need to reinstall krkrwine if Proton updates. (However, if you reinstall Proton, or download a new Proton version, you obviously need to reinstall krkrwine too.)
 
@@ -17,6 +17,7 @@ Installation - Linux/Wine
 
 On Debian,
 
+- Download and extract [a release](https://github.com/Alcaro/krkrwine/releases)
 - sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-plugins-good:i386 gstreamer1.0-plugins-bad:i386 gstreamer1.0-plugins-ugly:i386 gstreamer1.0-libav:i386
 - ./install.py --wine
 
@@ -26,7 +27,7 @@ Note that on Debian, gstreamer1.0-libav is not part of, or a dependency of, gstr
 
 install.py will obey the WINEPREFIX environment variable, if set.
 
-gstkrkr will not be installed; it does nothing useful if you have the above plugins and don't have protonmediaconverter. If you want them anyways for development purposes, you can copy or link them to ~/.local/share/gstreamer-1.0/plugins/.
+krkrwine includes a GStreamer component; it's installed in Proton, but is not necessary or recommended under Wine, it does nothing useful if you have the above plugins and don't have protonmediaconverter. If you want them anyways for development purposes, you can copy or link them to ~/.local/share/gstreamer-1.0/plugins/.
 
 Installation - macOS
 --------------------
@@ -46,7 +47,7 @@ Compilation
 - make prepare EGGROLL=/home/user/steam/compatibilitytools.d/GE-Proton8-4/
 - make
 - ./install.py /home/user/steam/steamapps/common/Proton\ 8.0/
-If desired, you may acquire i686-w64-mingw32-g++-win32 and x86_64-w64-mingw32-g++-win32 programs from elsewhere. I use https://winlibs.com/ in Wine.
+If desired, you may acquire i686-w64-mingw32-g++-win32 and x86_64-w64-mingw32-g++-win32 programs from elsewhere. I use https://winlibs.com/ in Wine. (Compiling with *-mingw32-g++-posix is not recommended, since it adds dependencies on libwinpthread-1.dll, and possibly others; I don't know if installing that lib into system32 breaks anything, and I don't feel like finding out.)
 
 License
 -------

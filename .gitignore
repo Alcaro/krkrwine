@@ -4,8 +4,10 @@ gstkrkr-i386.so
 gstkrkr-x86_64.so
 krkrwine-i386.dll
 krkrwine-x86_64.dll
+krkrwine.tar.gz
 run32.exe
 run64.exe
+krmovie.dll
 *.wmv
 *.WMV
 *.mpg
