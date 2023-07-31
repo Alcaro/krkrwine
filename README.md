@@ -65,7 +65,7 @@ Ideally, this project would be unnecessary. As such, I'm offering bounties on fi
 - $25 - CLSID_MPEG1Splitter IAMStreamSelect (doesn't need to be fully implemented, just needs the parts Kirikiri uses)
 - $25 - CLSID_VideoMixingRenderer9 ChangeD3DDevice and NotifyEvent
 - $500 - WMCreateSyncReader compressed output, CLSID_CWMADecMediaObject, and CLSID_CWMVDecMediaObject
-- $100 - Direct3D 9 on WS_CHILD windows under wined3d
+- $100 - Direct3D 9 on WS_CHILD windows under wined3d (it works in dxvk)
 - $25 - make WMSyncReader resize its allocator, so it can output RGB32 properly
 - $100 - figure out what's going on with the memory allocator and VFW_E_NOT_COMMITTED, and solve it
 - $0 - anything involving gstkrkr and Proton's GStreamer. That's a patent issue; it's a question for lawyers, not programmers. It's only needed in Proton, not vanilla Wine.
