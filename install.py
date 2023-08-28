@@ -39,7 +39,7 @@ def silent_unlink(path):
 
 def in_this_dir(name):
 	path = os.path.realpath(os.path.dirname(__file__)+"/"+name)
-	assert os.path.isfile(path)
+	assert os.path.exists(path)
 	return path
 
 def set_regkeys(wineprefix, dllpaths):
@@ -49,21 +49,6 @@ def set_regkeys(wineprefix, dllpaths):
 	registry = set_regkey(registry, key_clsid_wow64(CLSID_FilterGraph), dllpaths["i386"])
 	registry = set_regkey(registry, key_clsid_wow64(CLSID_FilterGraphNoThread), dllpaths["i386"])
 	open(wineprefix+"/system.reg","wt").write(registry)
-
-
-def gstreamer_install(install, devel):
-	gst_dir = os.getenv("HOME")+"/.local/share/gstreamer-1.0/plugins"
-	os.makedirs(gst_dir, exist_ok=True)
-	silent_unlink(gst_dir+"/gstkrkr-i386.so")
-	silent_unlink(gst_dir+"/gstkrkr-x86_64.so")
-	if uninstall:
-		pass
-	elif devel:
-		os.symlink(in_this_dir("gstkrkr-i386.so"), gst_dir + "/gstkrkr-i386.so")
-		os.symlink(in_this_dir("gstkrkr-x86_64.so"), gst_dir + "/gstkrkr-x86_64.so")
-	else:
-		shutil.copy(in_this_dir("gstkrkr-i386.so"), gst_dir + "/gstkrkr-i386.so")
-		shutil.copy(in_this_dir("gstkrkr-x86_64.so"), gst_dir + "/gstkrkr-x86_64.so")
 
 
 def wine_install(wineprefix, unixpaths, unsafe, mode):
@@ -85,6 +70,8 @@ def wine_install(wineprefix, unixpaths, unsafe, mode):
 		set_regkeys(wineprefix, { "x86_64": "C:\\windows\\system32\\krkrwine.dll", "i386": "C:\\windows\\system32\\krkrwine.dll" })
 		shutil.copy(unixpaths["x86_64"], wineprefix + "/drive_c/windows/system32/krkrwine.dll")
 		shutil.copy(unixpaths["i386"],   wineprefix + "/drive_c/windows/syswow64/krkrwine.dll")
+	elif mode == "reg_only":
+		set_regkeys(wineprefix, { "x86_64": "C:\\windows\\system32\\krkrwine.dll", "i386": "C:\\windows\\system32\\krkrwine.dll" })
 	else:
 		1/0
 
@@ -99,7 +86,6 @@ if __name__ == "__main__":
 	parser.add_argument('path', type=str, nargs='?', action="store", help="Path to Proton installation")
 	parser.add_argument('--wine', action="store_true", help="Install to non-Protom Wine at ~/.wine or WINEPREFIX")
 	parser.add_argument('--unsafe', action="store_true", help="Don't check if Wine is running before installing")
-	parser.add_argument('--with-gstreamer', action="store_true", help="Install GStreamer plugins as well (not recommended, unless for development purposes; Wine only, not Proton)")
 	parser.add_argument('--uninstall', action="store_true", help="Uninstall instead (Wine only, not Proton - sorry about that)")
 	parser.add_argument('--devel', action="store_true", help="Point Wine to the DLLs' current location, instead of copying them into Wine's system32; allows easier updates of them, but you can't remove the krkrwine download directory (Wine only, not Proton)")
 	
@@ -128,14 +114,12 @@ Usage:
 			print("That doesn't look like a Wine prefix")
 			exit(1)
 		
+		print("Installing krkrwine to Wine...")
 		if not args.uninstall:
 			dllpaths = {}
 			wine_install(wineprefix, unixpaths=unixpaths, unsafe=args.unsafe, mode=["copy", "z"][args.devel])
-			if args.with_gstreamer:
-				gstreamer_install(True, args.devel)
 		else:
 			wine_uninstall(wineprefix)
-			gstreamer_install(False, False)
 	else:
 		if os.path.isfile(args.path + "/dist/share/default_pfx/system.reg"):
 			# normal Proton
@@ -155,7 +139,7 @@ Usage:
 			print("sorry, unimplemented - krkrwine installs itself to every Proton prefix where it's used, it's hard to identify which prefixes to uninstall from")
 			exit(1)
 		
-		print("Installing krkrwine...")
+		print("Installing krkrwine to Proton...")
 		
 		# it's a Proton installation
 		wine_install(proton_files + "/share/default_pfx", unixpaths=unixpaths, unsafe=True, mode="copy")
@@ -200,10 +184,17 @@ Usage:
 
 def install_within_proton():
 	wineprefix = os.environ["STEAM_COMPAT_DATA_PATH"] + "/pfx"
-	unixpaths = {}
-	unixpaths["x86_64"] = in_this_dir("dist/share/default_pfx/drive_c/windows/system32/krkrwine.dll")
-	unixpaths["i386"]   = in_this_dir("dist/share/default_pfx/drive_c/windows/syswow64/krkrwine.dll")
 	if os.path.isdir(wineprefix):
 		# if not, the registry and DLLs will be copied from the upstream Proton installation
+		unixpaths = {}
+		unixpaths["x86_64"] = in_this_dir("dist/share/default_pfx/drive_c/windows/system32/krkrwine.dll")
+		unixpaths["i386"]   = in_this_dir("dist/share/default_pfx/drive_c/windows/syswow64/krkrwine.dll")
 		wine_install(wineprefix, unixpaths=unixpaths, unsafe=True, mode="symlink")
+	else:
+		# should be in place already, but may have been clobbered by an update
+		try:
+			wine_install(in_this_dir("dist/share/default_pfx"), unixpaths=None, unsafe=True, mode="reg_only")
+		except:
+			# in case it's a Glorious Eggroll
+			wine_install(in_this_dir("files/share/default_pfx"), unixpaths=None, unsafe=True, mode="reg_only")
 	os.environ["PROTON_NO_STEAM_FFMPEG"] = "1"

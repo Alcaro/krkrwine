@@ -16,7 +16,7 @@
  * gst-launch-1.0 filesrc location=video.mpg ! mpegpsdemux name=demux ! mpegvideoparse ! avdec_mpeg2video ! queue ! autovideosink \
  *                                             demux. ! mpegaudioparse ! avdec_mp2float ! audioconvert ! queue ! autoaudiosink
  * gst-launch-1.0 filesrc location=video.mpg ! mpegpsdemux name=demux ! krkr_mpegvideo ! queue ! autovideosink \
- *                                             demux. ! krkr_mpegaudio ! audioconvert ! queue ! autoaudiosink
+ *                                             demux. ! mpegaudioparse ! avdec_mp2float ! audioconvert ! queue ! autoaudiosink
  * ]|
  * </refsect2>
  */

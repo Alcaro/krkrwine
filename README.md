@@ -59,22 +59,22 @@ The Glorious-Eggroll subdirectory of the releases is, as the name implies, copie
 Upstreaming
 -----------
 
-Ideally, this project would be unnecessary. As such, I'm offering bounties on fixing the Windows-side issues in upstream Wine.
+Ideally, this project would be unnecessary (other than the codec installation). As such, I'm offering bounties on fixing the Windows-side issues in upstream Wine.
 
 - $250 - CLSID_MPEG1Splitter video output, and CLSID_CMpegVideoCodec (these objects may use GStreamer, of course)
 - $25 - CLSID_MPEG1Splitter IAMStreamSelect (doesn't need to be fully implemented, just needs the parts Kirikiri uses)
 - $25 - CLSID_VideoMixingRenderer9 ChangeD3DDevice and NotifyEvent
 - $500 - WMCreateSyncReader compressed output, CLSID_CWMADecMediaObject, and CLSID_CWMVDecMediaObject
-- $100 - Direct3D 9 on WS_CHILD windows under wined3d (it works in dxvk)
+- $100 - Direct3D 9 on WS_CHILD windows under wined3d in the Debian package - the bug doesn't reproduce if I compile Wine from source
 - $25 - make WMSyncReader resize its allocator, so it can output RGB32 properly
 - $100 - figure out what's going on with the memory allocator and VFW_E_NOT_COMMITTED, and solve it
 - $0 - anything involving gstkrkr and Proton's GStreamer. That's a patent issue; it's a question for lawyers, not programmers. It's only needed in Proton, not vanilla Wine.
 - Anything that Kirikiri needs but isn't in the above list - that's a bug in this readme, contact me
 
-I can't do it myself; I've debugged some things too hard, and have single-stepped and disassembled Windows DLLs.
+I would do it myself if I could, but I've debugged some things too hard, and have single-stepped and disassembled Windows DLLs; I haven't disassembled the DirectShow DLLs, but I don't know how wide Wine's clean-room-only rule is.
 
 You are allowed, but not required, to base such efforts on this project. My architecture is very different from Wine's existing objects, and many of them are implemented in an awful way, so most of my code is unusable; but you're welcome to look for hints on the objects' expected behavior, or otherwise use them to help implement yours. You may also use the Kirikiri source code, <https://github.com/krkrz/krkr2/tree/master/kirikiri2/trunk>
 
 To claim a bounty, post at <https://github.com/Alcaro/krkrwine/discussions/1>, or email me at sir@walrus.se. These bounties can be combined with similar offers made by others.
 
-If I see any of the above implemented, but nobody claims the bounty, I will donate it to Wine.
+If I see any of the above implemented, but nobody claims the bounty, I will wait one month, then donate it to Wine.
