@@ -50,8 +50,6 @@ DEFINE_GUID(IID_IUnknown, 0x00000000, 0x0000, 0x0000, 0xc0,0x00, 0x00,0x00,0x00,
 DEFINE_GUID(IID_IAMOpenProgress,0x8E1C39A1, 0xDE53, 0x11cf, 0xAA, 0x63, 0x00, 0x80, 0xC7, 0x44, 0x52, 0x8D);
 DEFINE_GUID(IID_IAMDeviceRemoval,0xf90a6130,0xb658,0x11d2,0xae,0x49,0x00,0x00,0xf8,0x75,0x4b,0x99);
 __CRT_UUID_DECL(IAMStreamSelect, 0xc1960960, 0x17f5, 0x11d1, 0xab,0xe1, 0x00,0xa0,0xc9,0x05,0xf3,0x75)
-// used only to detect DXVK
-DEFINE_GUID(IID_ID3D9VkInteropDevice, 0x2eaa4b89, 0x0107, 0x4bdb, 0x87,0xf7, 0x0f,0x54,0x1c,0x49,0x3c,0xe0);
 
 static char* guid_to_str(const GUID& guid)
 {
@@ -64,6 +62,8 @@ static char* guid_to_str(const GUID& guid)
 
 template<typename T> T min(T a, T b) { return a < b ? a : b; }
 template<typename T> T max(T a, T b) { return a > b ? a : b; }
+
+static bool is_debian_build;
 
 
 template<typename T> class CComPtr {
@@ -714,7 +714,7 @@ static inline int mp2_packet_parse(const uint8_t * ptr, size_t len, int* sampler
 	return 1;
 }
 
-class CMPEG1Splitter : public base_filter<CMPEG1Splitter, IAMStreamSelect> {
+class CMPEG1Splitter : public base_filter<CMPEG1Splitter, IAMStreamSelect, IMediaSeeking> {
 public:
 	SRWLOCK srw; // threading: safe
 	CONDITION_VARIABLE wake_parent; // threading: safe
@@ -1192,6 +1192,50 @@ public:
 		// ignore the others, Kirikiri just leaves them as null (and it never uses the group, it just stores it somewhere)
 		return S_OK;
 	}
+	
+	// IMediaSeeking
+	HRESULT STDMETHODCALLTYPE CheckCapabilities(DWORD* pCapabilities) override
+		{ puts("CheckCapabilities"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE ConvertTimeFormat(LONGLONG* pTarget, const GUID* pTargetFormat, LONGLONG Source, const GUID* pSourceFormat) override
+		{ puts("ConvertTimeFormat"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE GetAvailable(LONGLONG* pEarliest, LONGLONG* pLatest) override
+		{ puts("GetAvailable"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE GetCapabilities(DWORD* pCapabilities) override
+		{ puts("GetCapabilities"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE GetCurrentPosition(LONGLONG* pCurrent) override
+		{ puts("GetCurrentPosition"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE GetDuration(LONGLONG* pDuration) override
+		{ puts("GetDuration"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE GetPositions(LONGLONG* pCurrent, LONGLONG* pStop) override
+		{ puts("GetPositions"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE GetPreroll(LONGLONG* pllPreroll) override
+		{ puts("GetPreroll"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE GetRate(double* pdRate) override
+		{ puts("GetRate"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE GetStopPosition(LONGLONG* pStop) override
+		{ puts("GetStopPosition"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE GetTimeFormat(GUID* pFormat) override
+		{ puts("GetTimeFormat"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE IsFormatSupported(const GUID* pFormat) override
+	{
+		puts("IsFormatSupported");
+		if (*pFormat == TIME_FORMAT_MEDIA_TIME) // Wine ignores my IMediaSeeking unless this is supported
+			return S_OK;
+		return E_OUTOFMEMORY;
+	}
+	HRESULT STDMETHODCALLTYPE IsUsingTimeFormat(const GUID* pFormat) override
+		{ puts("IsUsingTimeFormat"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE QueryPreferredFormat(GUID* pFormat) override
+		{ puts("QueryPreferredFormat"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE SetPositions(LONGLONG* pCurrent, DWORD dwCurrentFlags, LONGLONG* pStop, DWORD dwStopFlags) override
+	{
+		puts("SetPositions"); // just do nothing
+		return S_OK;
+	}
+	HRESULT STDMETHODCALLTYPE SetRate(double dRate) override
+		{ puts("SetRate"); return E_OUTOFMEMORY; }
+	HRESULT STDMETHODCALLTYPE SetTimeFormat(const GUID* pFormat) override
+		{ puts("SetTimeFormat"); return E_OUTOFMEMORY; }
 };
 
 class CMpegVideoCodec : public base_filter<CMpegVideoCodec> {
@@ -1484,13 +1528,7 @@ class CVideoMixingRenderer9 : public com_base<IBaseFilter> {
 		HRESULT STDMETHODCALLTYPE InitializeDevice(DWORD_PTR dwUserID, VMR9AllocationInfo* lpAllocInfo, DWORD* lpNumBuffers)
 		{
 			need_reinit = false;
-			need_move_window = true;
-			// DXVK doesn't have this glitch
-			// I'd rather detect wined3d, not DXVK, but those are the only two options, so good enough
-			// (native windows shouldn't run this code at all)
-			CComPtr<IUnknown> detect_dxvk;
-			if (SUCCEEDED(the_d3ddevice->QueryInterface(IID_ID3D9VkInteropDevice, (void**)&detect_dxvk)))
-				need_move_window = false;
+			need_move_window = is_debian_build; // https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1043052 (likely same as 1051492)
 			the_userid = dwUserID;
 			the_allocinfo = *lpAllocInfo;
 			return parent_alloc->InitializeDevice(dwUserID, lpAllocInfo, lpNumBuffers);
@@ -1557,6 +1595,7 @@ class CVideoMixingRenderer9 : public com_base<IBaseFilter> {
 			if (!need_reinit)
 				return;
 			
+puts("DOING EVIL REINIT");
 			need_reinit = false;
 			the_surface[0]->Release();
 			the_surface[0] = nullptr;
@@ -2173,11 +2212,12 @@ public:
 	}
 };
 
-template<typename T>
+template<typename T, const GUID& clsid>
 class ClassFactory : public com_base<IClassFactory> {
 public:
 	HRESULT STDMETHODCALLTYPE CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
 	{
+//printf("krkrwine: create %s (iface %s)\n", guid_to_str(clsid), guid_to_str(riid));
 		if (pUnkOuter != nullptr)
 			return CLASS_E_NOAGGREGATION;
 		return qi_release(new T(), riid, ppvObject);
@@ -2185,11 +2225,12 @@ public:
 	HRESULT STDMETHODCALLTYPE LockServer(BOOL lock) { return S_OK; } // don't care
 };
 
-template<typename T>
+template<typename T, const GUID& clsid>
 class AggregatingClassFactory : public com_base<IClassFactory> {
 public:
 	HRESULT STDMETHODCALLTYPE CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
 	{
+//printf("krkrwine: create %s (iface %s)\n", guid_to_str(clsid), guid_to_str(riid));
 		if (pUnkOuter == nullptr)
 			return VFW_E_NEED_OWNER; // wrong if this isn't a VFW object, but who cares, it's an error, good enough
 		if (riid != IID_IUnknown)
@@ -2228,20 +2269,24 @@ static void very_unsafe_init()
 	if (initialized)
 		return;
 	initialized = true;
+//setvbuf(stdout, nullptr, _IONBF, 0);
+//puts("krkrwine - hello world");
 	
 	// refuse to operate on Windows
-	if (!GetProcAddress(GetModuleHandle("ntdll.dll"), "wine_get_version"))
+	auto wine_get_build_id = (const char*(*)())GetProcAddress(GetModuleHandle("ntdll.dll"), "wine_get_version");
+	if (!wine_get_build_id)
 		return;
+	is_debian_build = (strstr(wine_get_build_id(), "Debian"));
 	
 	DWORD ignore;
 	
-	IClassFactory* fac_mpegsplit = new ClassFactory<CMPEG1Splitter>();
+	IClassFactory* fac_mpegsplit = new ClassFactory<CMPEG1Splitter, CLSID_MPEG1Splitter>();
 	CoRegisterClassObject(CLSID_MPEG1Splitter, fac_mpegsplit, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
 	
-	IClassFactory* fac_mpegvideo = new ClassFactory<CMpegVideoCodec>();
+	IClassFactory* fac_mpegvideo = new ClassFactory<CMpegVideoCodec, CLSID_CMpegVideoCodec>();
 	CoRegisterClassObject(CLSID_CMpegVideoCodec, fac_mpegvideo, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
 	
-	IClassFactory* fac_vmr9 = new ClassFactory<CVideoMixingRenderer9>();
+	IClassFactory* fac_vmr9 = new ClassFactory<CVideoMixingRenderer9, CLSID_VideoMixingRenderer9>();
 	CoRegisterClassObject(CLSID_VideoMixingRenderer9, fac_vmr9, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
 	
 	// if all I needed was to swap/implement the above objects, I'd put that in install.py
@@ -2282,7 +2327,7 @@ static void very_unsafe_init()
 	}
 	
 	// only register these if the fake WMCreateSyncReader can be injected
-	IClassFactory* fac_dmo = new AggregatingClassFactory<fake_DMOObject>();
+	IClassFactory* fac_dmo = new AggregatingClassFactory<fake_DMOObject, CLSID_CWMVDecMediaObject>();
 	CoRegisterClassObject(CLSID_CWMVDecMediaObject, fac_dmo, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
 	CoRegisterClassObject(CLSID_CWMADecMediaObject, fac_dmo, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
 }
@@ -2301,10 +2346,6 @@ static void very_unsafe_init()
 
 EXPORT(HRESULT, DllGetClassObject, (REFCLSID rclsid, REFIID riid, void** ppvObj))
 {
-	//freopen("Z:\\dev\\stdout", "wt", stdout);
-	//setvbuf(stdout, nullptr, _IONBF, 0);
-	//puts("krkrwine - hello world");
-	
 	very_unsafe_init();
 	
 	// this DllGetClassObject doesn't actually implement anything, it just calls very_unsafe_init then defers to the original

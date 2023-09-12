@@ -27,7 +27,7 @@ Note that on Debian, gstreamer1.0-libav is not part of, or a dependency of, gstr
 
 install.py will obey the WINEPREFIX environment variable, if set.
 
-krkrwine includes a GStreamer component; it's installed in Proton, but is not necessary or recommended under Wine, it does nothing useful if you have the above plugins and don't have protonmediaconverter. If you want them anyways for development purposes, you can copy or link them to ~/.local/share/gstreamer-1.0/plugins/.
+krkrwine's GStreamer component will not be installed under Wine; it does nothing useful if you have the above plugins and don't have protonmediaconverter. If you want them anyways for development purposes, you can copy or link them to ~/.local/share/gstreamer-1.0/plugins/.
 
 Installation - macOS
 --------------------

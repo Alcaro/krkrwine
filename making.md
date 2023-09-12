@@ -712,7 +712,7 @@ In conclusion, I've encountered, and had to fill in or work around most of, the 
 - WMCreateSyncReader SetReadStreamSamples is incomplete (and not even tagged semi-stub)
 - CLSID_CWMVDecMediaObject and CLSID_CWMADecMediaObject are unimplemented
 - IVMRSurfaceAllocatorNotify9 AllocateSurfaceHelper can return D3DERR_INVALIDCALL and zero out *lpNumBuffers if originally 1 (I don't know if real Windows lets the corresponding call succeed, or if it fails and leaves *lpNumBuffers unchanged, but Kirikiri cannot handle any zeroing)
-- Direct3D 9 under wined3d doesn't work in child windows
+- Direct3D 9 under wined3d doesn't work in child windows, on Debian's Wine (does not reproduce upstream)
 - Direct3D 9 under DXVK doesn't work in former child windows promoted to borderless standalone (I didn't investigate this one very closely)
 - SetWindowLongPtr(GWLP_HWNDPARENT) does not properly create an ownership relation unless the window is hidden and re-shown (unconfirmed what that does on Windows)
 - At least one drawing API (probably the HDC family, or some subset thereof) only works if the window is in the top left part of the screen
@@ -720,3 +720,16 @@ In conclusion, I've encountered, and had to fill in or work around most of, the 
 - WMCreateSyncReader()->IWMSyncReader::SetOutputProps() doesn't reconfigure its allocator; this causes various trouble if the requested pixel format (for example RGB32) has more bits per pixel than the default (RGB24)
 - Something is causing IWMSyncReader::GetNextSample() to occasionally return VFW_E_NOT_COMMITTED. Unfortunately, I haven't been able to narrow this one down more than 'turn off the VFW_E_NOT_COMMITTED check, and watch the Wagamama High Spec OP video in Proton'.
 - sink_NewSegment() calls TRACE("pin %p %s:%s, start %s, stop %s, rate %.16e.\n", ...). It renders as [...] start 0.0, stop 95.6, rate e.
+
+The Sequel
+----------
+
+Fun fact: Not all Kirikiri games are equal. Some use more engine functionality than others.
+
+I, of course, implemented only the pieces I needed for microkiri and Wagamama High Spec. This is sufficient for some of them, but far from all - Island Diary calls IMediaPosition::put_CurrentPosition(0) on the filter graph. This is implemented in Wine, but it's implemented by looping through all filters and trying to call IMediaSeeking::SetPositions(), and none of my filters support that.
+
+Stubbing out everything except that function with an out of memory error yields... the exact same error. And a note in the log about IMediaSeeking::IsFormatSupported().
+
+Turns out Wine calls IsFormatSupported(TIME_FORMAT_MEDIA_TIME) on every filter, and if that fails, it ignores the rest of the IMediaSeeking interface. A reasonable implementation, I guess... sure, I can implement that too.
+
+An annoying side track, but not particularly difficult. Now that I have some of the VNs working, it's obvious that there's only small pieces missing if any specific one fails.
