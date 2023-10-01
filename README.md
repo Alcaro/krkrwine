@@ -63,7 +63,7 @@ Ideally, this project would be unnecessary (other than the codec installation). 
 
 - $250 - CLSID_MPEG1Splitter video output, and CLSID_CMpegVideoCodec (these objects may use GStreamer, of course)
 - $25 - CLSID_MPEG1Splitter IAMStreamSelect (doesn't need to be fully implemented, just needs the parts Kirikiri uses)
-- $25 - CLSID_VideoMixingRenderer9 ChangeD3DDevice and NotifyEvent
+- ~~$25 - CLSID_VideoMixingRenderer9 ChangeD3DDevice and NotifyEvent~~ Resolved and claimed
 - $500 - WMCreateSyncReader compressed output, CLSID_CWMADecMediaObject, and CLSID_CWMVDecMediaObject
 - $100 - Direct3D 9 on WS_CHILD windows under wined3d in the Debian package - the bug doesn't reproduce if I compile Wine from source
 - $25 - make WMSyncReader resize its allocator, so it can output RGB32 properly
@@ -71,7 +71,7 @@ Ideally, this project would be unnecessary (other than the codec installation). 
 - $0 - anything involving gstkrkr and Proton's GStreamer. That's a patent issue; it's a question for lawyers, not programmers. It's only needed in Proton, not vanilla Wine.
 - Anything that Kirikiri needs but isn't in the above list - that's a bug in this readme, contact me
 
-I would do it myself if I could, but I've debugged some things too hard, and have single-stepped and disassembled Windows DLLs; I haven't disassembled the DirectShow DLLs, but I don't know how wide Wine's clean-room-only rule is.
+though I'm working on them myself, so fair chance I'll finish first.
 
 You are allowed, but not required, to base such efforts on this project. My architecture is very different from Wine's existing objects, and many of them are implemented in an awful way, so most of my code is unusable; but you're welcome to look for hints on the objects' expected behavior, or otherwise use them to help implement yours. You may also use the Kirikiri source code, <https://github.com/krkrz/krkr2/tree/master/kirikiri2/trunk>
 

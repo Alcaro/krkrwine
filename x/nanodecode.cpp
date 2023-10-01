@@ -81,7 +81,7 @@ public:
 
 static HRESULT connect_filters(IGraphBuilder* graph, IBaseFilter* src, IBaseFilter* dst)
 {
-puts("connect.");
+puts("TRYCONNECTFILT");
 	CComPtr<IEnumPins> src_enum;
 	if (FAILED(src->EnumPins(&src_enum)))
 		return E_FAIL;
@@ -89,12 +89,14 @@ puts("connect.");
 	CComPtr<IPin> src_pin;
 	while (src_enum->Next(1, &src_pin, nullptr) == S_OK)
 	{
-puts("src.");
 		PIN_INFO src_info;
 		if (FAILED(src_pin->QueryPinInfo(&src_info)))
 			return E_FAIL;
 		if (src_info.pFilter)
 			src_info.pFilter->Release();
+printf("TRYCONNECTSRC ");
+for (int i=0;src_info.achName[i];i++)putchar(src_info.achName[i]);
+puts("");
 		if (src_info.dir != PINDIR_OUTPUT)
 			continue;
 		
@@ -108,10 +110,12 @@ puts("src.");
 		CComPtr<IPin> dst_pin;
 		while (dst_enum->Next(1, &dst_pin, nullptr) == S_OK)
 		{
-puts("dst.");
 			PIN_INFO dst_info;
 			if (FAILED(dst_pin->QueryPinInfo(&dst_info)))
 				return E_FAIL;
+printf("TRYCONNECTDST ");
+for (int i=0;src_info.achName[i];i++)putchar(src_info.achName[i]);
+puts("");
 			if (dst_info.pFilter)
 				dst_info.pFilter->Release();
 			if (dst_info.dir != PINDIR_INPUT)
@@ -121,14 +125,15 @@ puts("dst.");
 			if (check_pin != nullptr)
 				continue;
 			
-puts("match.");
-			//if (SUCCEEDED(graph->Connect(src_pin, dst_pin)))
-			if (SUCCEEDED(graph->ConnectDirect(src_pin, dst_pin, nullptr)))
+puts("TRYCONNECTPAIR");
+			//HRESULT hr = graph->Connect(src_pin, dst_pin);
+			HRESULT hr = graph->ConnectDirect(src_pin, dst_pin, nullptr);
+			if (SUCCEEDED(hr))
 			{
 puts("match2.");
 				return S_OK;
 			}
-puts("match3.");
+printf("FAILCONNECTPAIR %.8lx\n", hr);
 		}
 	}
 	return E_FAIL;

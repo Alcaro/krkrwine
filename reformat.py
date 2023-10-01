@@ -76,7 +76,7 @@ for fn in text.replace("\n", "").split(";"):
 		args[n] = arg
 	# print("------")
 	# print(ret,name,args)
-	if args:
+	if args != ['']:
 		args_untyped = ','.join(re.search("[A-Za-z0-9_a+]+$", a)[0] for a in args)
 	else:
 		args_untyped = ''

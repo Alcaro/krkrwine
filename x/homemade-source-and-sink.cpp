@@ -28,6 +28,9 @@ static char* guid_to_str(const GUID& guid)
 	return ret;
 }
 
+template<typename T> T min(T a, T b) { return a < b ? a : b; }
+template<typename T> T max(T a, T b) { return a > b ? a : b; }
+
 
 template<typename T> class CComPtr {
 	void assign(T* ptr)
@@ -226,7 +229,8 @@ public:
 		vsnprintf(buf, 1024, fmt, args);
 		va_end(args);
 		
-		fprintf(stdout, "%lu %s %s\n", GetCurrentThreadId(), typeid(Touter).name(), buf);
+		//fprintf(stdout, "%lu %s %s\n", GetCurrentThreadId(), typeid(Touter).name(), buf);
+		fprintf(stdout, "%lu %s %s\n", GetCurrentThreadId(), "base_filter", buf);
 		fflush(stdout);
 	}
 	
@@ -333,7 +337,8 @@ public:
 		vsnprintf(buf, 1024, fmt, args);
 		va_end(args);
 		
-		fprintf(stdout, "%lu %s %s\n", GetCurrentThreadId(), typeid(Touter).name(), buf);
+		//fprintf(stdout, "%lu %s %s\n", GetCurrentThreadId(), typeid(Touter).name(), buf);
+		fprintf(stdout, "%lu %s %s\n", GetCurrentThreadId(), "base_pin", buf);
 	}
 	
 	Touter* parent()
@@ -532,12 +537,27 @@ pSample->GetTime(&time1, &time2);
 	HRESULT WINAPI SyncReadAligned(IMediaSample* pSample)
 	{
 		debug("IAsyncReader SyncReadAligned");
-		return E_OUTOFMEMORY;
+		REFERENCE_TIME start_t;
+		REFERENCE_TIME end_t;
+		pSample->GetTime(&start_t, &end_t);
+		
+		size_t start = start_t/10000000; // microsoft, seriously?
+		size_t end = end_t/10000000;
+		
+		int64_t len;
+		this->Length(&len, &len);
+		if (end > len)
+			end = len;
+		BYTE* ptr;
+		pSample->GetPointer(&ptr);
+		SyncRead(start, end-start, ptr);
+		pSample->SetActualDataLength(end-start);
+		return S_OK;
 	}
 	HRESULT WINAPI WaitForNext(DWORD dwTimeout, IMediaSample** ppSample, uintptr_t* pdwUser)
 	{
 		debug("IAsyncReader WaitForNext");
-		return E_OUTOFMEMORY;
+		return S_FALSE;
 	}
 };
 
@@ -614,7 +634,7 @@ public:
 
 class customFilterSource : public base_filter<customFilterSource> {
 public:
-	class out_pin : public base_pin<true, com_base_embedded<IPin, IAsyncReader>, out_pin> {
+	class out_pin : public base_pin<true, com_base_embedded<IPin, IAsyncReader, IStream>, out_pin> {
 	public:
 		customFilterSource* parent() { return container_of<&customFilterSource::pin>(this); }
 		
@@ -661,6 +681,40 @@ public:
 			memcpy(pBuffer, parent()->ptr+llPosition, lLength);
 			return S_OK;
 		}
+		
+		ULONG pos = 0;
+		// ISequentialStream
+		HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead) override
+		{
+			puts("ISequentialStream Read");
+			ULONG total = parent()->len;
+			ULONG n = min(cb, total-pos);
+			memcpy(pv, parent()->ptr+pos, n);
+			*pcbRead = n;
+			return (n == cb ? S_OK : S_FALSE);
+		}
+		HRESULT STDMETHODCALLTYPE Write(const void* pv, ULONG cb, ULONG* pcbWritten) override
+			{ puts("ISequentialStream Write"); return E_OUTOFMEMORY; }
+		
+		// IStream
+		HRESULT STDMETHODCALLTYPE Clone(IStream** ppstm) override
+			{ puts("IStream Clone"); return E_OUTOFMEMORY; }
+		HRESULT STDMETHODCALLTYPE Commit(DWORD grfCommitFlags) override
+			{ puts("IStream Commit"); return E_OUTOFMEMORY; }
+		HRESULT STDMETHODCALLTYPE CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) override
+			{ puts("IStream CopyTo"); return E_OUTOFMEMORY; }
+		HRESULT STDMETHODCALLTYPE LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
+			{ puts("IStream LockRegion"); return E_OUTOFMEMORY; }
+		HRESULT STDMETHODCALLTYPE Revert() override
+			{ puts("IStream Revert"); return E_OUTOFMEMORY; }
+		HRESULT STDMETHODCALLTYPE Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) override
+			{ puts("IStream Seek"); return E_OUTOFMEMORY; }
+		HRESULT STDMETHODCALLTYPE SetSize(ULARGE_INTEGER libNewSize) override
+			{ puts("IStream SetSize"); return E_OUTOFMEMORY; }
+		HRESULT STDMETHODCALLTYPE Stat(STATSTG* pstatstg, DWORD grfStatFlag) override
+			{ puts("IStream Stat"); return E_OUTOFMEMORY; }
+		HRESULT STDMETHODCALLTYPE UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) override
+			{ puts("IStream UnlockRegion"); return E_OUTOFMEMORY; }
 	};
 	out_pin pin;
 	
@@ -719,6 +773,7 @@ puts("");
 puts("TRYCONNECTPAIR");
 			if (SUCCEEDED(graph->ConnectDirect(src_pin, dst_pin, nullptr)))
 				return S_OK;
+puts("FAILCONNECTPAIR");
 		}
 	}
 	return E_FAIL;
@@ -757,7 +812,7 @@ int main()
 	require(4, mpegSplitter.CoCreateInstance(CLSID_MPEG1Splitter, nullptr, CLSCTX_INPROC_SERVER));
 	require(5, mpegVideoCodec.CoCreateInstance(CLSID_CMpegVideoCodec, nullptr, CLSCTX_INPROC_SERVER));
 	require(6, mpegAudioCodec.CoCreateInstance(CLSID_CMpegAudioCodec, nullptr, CLSCTX_INPROC_SERVER));
-	require(7, decodebin.CoCreateInstance(CLSID_decodebin_parser, nullptr, CLSCTX_INPROC_SERVER));
+	//require(7, decodebin.CoCreateInstance(CLSID_decodebin_parser, nullptr, CLSCTX_INPROC_SERVER));
 	require(8, dsound.CoCreateInstance(CLSID_DSoundRender, nullptr, CLSCTX_INPROC_SERVER));
 	require(9, vmr9.CoCreateInstance(CLSID_VideoMixingRenderer9, nullptr, CLSCTX_INPROC_SERVER));
 	
@@ -767,7 +822,7 @@ int main()
 	require(14, filterGraph->AddFilter(mpegSplitter, L"mpegSplitter"));
 	require(15, filterGraph->AddFilter(mpegVideoCodec, L"mpegVideoCodec"));
 	require(16, filterGraph->AddFilter(mpegAudioCodec, L"mpegAudioCodec"));
-	require(17, filterGraph->AddFilter(decodebin, L"decodebin"));
+	//require(17, filterGraph->AddFilter(decodebin, L"decodebin"));
 	require(18, filterGraph->AddFilter(dsound, L"dsound"));
 	require(19, filterGraph->AddFilter(vmr9, L"vmr9"));
 	
@@ -827,3 +882,12 @@ int main()
 	
 	puts("exit");
 }
+
+#ifdef __MINGW32__
+// deleting these things removes a few kilobytes of binary and a dependency on libstdc++-6.dll
+void* operator new(std::size_t n) _GLIBCXX_THROW(std::bad_alloc) { return malloc(n); }
+void operator delete(void* p) noexcept { free(p); }
+void operator delete(void* p, std::size_t n) noexcept { operator delete(p); }
+extern "C" void __cxa_pure_virtual() { __builtin_trap(); }
+extern "C" void _pei386_runtime_relocator() {}
+#endif

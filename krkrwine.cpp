@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
 
-#define DOIT
-
 #ifdef __MINGW32__
 #  define _FILE_OFFSET_BITS 64
 // mingw *really* wants to define its own printf/scanf, which adds ~20KB random stuff to the binary
@@ -13,6 +11,8 @@
 #  undef __USE_MINGW_ANSI_STDIO    // which ignores my #define above and sets this flag; re-clear it before including <stdio.h>
 #  define __USE_MINGW_ANSI_STDIO 0 // (subsequent includes of c++config.h are harmless, there's an include guard)
 #endif
+
+#define DEBUG 1
 
 // WARNING to anyone trying to use these objects to implement them for real in Wine:
 // Wine's CLSID_CMpegAudioCodec demands packet boundaries to be in place. Therefore, this demuxer does that.
@@ -137,7 +137,9 @@ private:
 public:
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
 	{
+#if DEBUG >= 1
 //printf("plm QI %s\n", guid_to_str(riid));
+#endif
 		*ppvObject = nullptr;
 		if (riid == __uuidof(IUnknown))
 		{
@@ -157,18 +159,10 @@ class com_base : public com_base_embedded<Tis...> {
 public:
 	ULONG STDMETHODCALLTYPE AddRef() override
 	{
-//if (!strcmp(typeid(this).name(), "P8com_baseIJ11IBaseFilter27IVMRSurfaceAllocatorNotify9EE"))
-//{
-	//printf("addref, now %u\n", refcount+1);
-//}
 		return ++refcount;
 	}
 	ULONG STDMETHODCALLTYPE Release() override
 	{
-//if (!strcmp(typeid(this).name(), "P8com_baseIJ11IBaseFilter27IVMRSurfaceAllocatorNotify9EE"))
-//{
-	//printf("release, now %u\n", refcount-1);
-//}
 		uint32_t new_refcount = --refcount;
 		if (!new_refcount)
 			delete this;
@@ -316,7 +310,7 @@ class base_filter : public com_base<IBaseFilter, bases...> {
 public:
 	void debug(const char * fmt, ...)
 	{
-		return;
+#if DEBUG >= 1
 		char buf[1024];
 		
 		va_list args;
@@ -331,6 +325,7 @@ public:
 #endif
 		fprintf(stdout, "plm %lu %s %s\n", GetCurrentThreadId(), my_typename, buf);
 		fflush(stdout);
+#endif
 	}
 	
 	Touter* parent()
@@ -434,7 +429,7 @@ public:
 	
 	void debug(const char * fmt, ...)
 	{
-		return;
+#if DEBUG >= 1
 		char buf[1024];
 		
 		va_list args;
@@ -448,6 +443,7 @@ public:
 		const char * my_typename = "";
 #endif
 		fprintf(stdout, "plm %lu %s %s\n", GetCurrentThreadId(), my_typename, buf);
+#endif
 	}
 	
 	Touter* parent()
@@ -810,7 +806,7 @@ public:
 			};
 			am_mediatype = {
 				.majortype = MEDIATYPE_Video,
-				.subtype = MEDIASUBTYPE_MPEG1Packet,
+				.subtype = MEDIASUBTYPE_MPEG1Payload,
 				.bFixedSizeSamples = false,
 				.bTemporalCompression = true,
 				.lSampleSize = 0,
@@ -1165,7 +1161,7 @@ public:
 	}
 	HRESULT STDMETHODCALLTYPE Enable(long lIndex, DWORD dwFlags) override
 	{
-		return S_OK; // just don't bother
+		return E_OUTOFMEMORY; // I don't know if this is used - leave it unimplemented until I find something that uses it
 	}
 	HRESULT STDMETHODCALLTYPE Info(long lIndex, AM_MEDIA_TYPE** ppmt, DWORD* pdwFlags, LCID* plcid,
 	                               DWORD* pdwGroup, LPWSTR* ppszName, IUnknown** ppObject, IUnknown** ppUnk) override
@@ -1186,7 +1182,7 @@ public:
 				*ppmt = CreateMediaType(pin_a.media_type());
 		}
 		if (pdwFlags)
-			*pdwFlags = AMSTREAMSELECTINFO_ENABLED; // just don't bother
+			*pdwFlags = 0; // should be AMSTREAMSELECTINFO_ENABLED, but I don't know if it's used
 		if (pdwGroup)
 			*pdwGroup = is_audio;
 		// ignore the others, Kirikiri just leaves them as null (and it never uses the group, it just stores it somewhere)
@@ -1260,7 +1256,7 @@ public:
 		
 		bool connect_input(IPin* pConnector, const AM_MEDIA_TYPE * pmt)
 		{
-			if (pmt->majortype == MEDIATYPE_Video && pmt->subtype == MEDIASUBTYPE_MPEG1Packet)
+			if (pmt->majortype == MEDIATYPE_Video && pmt->subtype == MEDIASUBTYPE_MPEG1Payload)
 				return parent()->update_size_from_mediatype(pmt);
 			return false;
 		}
@@ -1320,7 +1316,7 @@ public:
 			.biWidth = -1,
 			.biHeight = -1,
 			.biPlanes = 1,
-			.biBitCount = 0,
+			.biBitCount = -1,
 			.biCompression = 0,
 			.biSizeImage = 0xFFFFFFFF,
 		},
@@ -2269,23 +2265,32 @@ static void very_unsafe_init()
 	if (initialized)
 		return;
 	initialized = true;
-//setvbuf(stdout, nullptr, _IONBF, 0);
-//puts("krkrwine - hello world");
+#if DEBUG >= 1
+setvbuf(stdout, nullptr, _IONBF, 0);
+puts("krkrwine - hello world");
+#endif
 	
 	// refuse to operate on Windows
-	auto wine_get_build_id = (const char*(*)())GetProcAddress(GetModuleHandle("ntdll.dll"), "wine_get_version");
+	auto wine_get_build_id = (const char*(*)())GetProcAddress(GetModuleHandle("ntdll.dll"), "wine_get_build_id");
 	if (!wine_get_build_id)
 		return;
 	is_debian_build = (strstr(wine_get_build_id(), "Debian"));
 	
 	DWORD ignore;
 	
-	IClassFactory* fac_mpegsplit = new ClassFactory<CMPEG1Splitter, CLSID_MPEG1Splitter>();
-	CoRegisterClassObject(CLSID_MPEG1Splitter, fac_mpegsplit, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
+	// if CLSID_CMpegVideoCodec already exists, don't install my own
+	CComPtr<IClassFactory> fac;
+	if (FAILED(CoGetClassObject(CLSID_CMpegVideoCodec, CLSCTX_INPROC_SERVER, NULL, IID_PPV_ARGS(&fac))))
+	{
+		IClassFactory* fac_mpegsplit = new ClassFactory<CMPEG1Splitter, CLSID_MPEG1Splitter>();
+		CoRegisterClassObject(CLSID_MPEG1Splitter, fac_mpegsplit, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
+		
+		IClassFactory* fac_mpegvideo = new ClassFactory<CMpegVideoCodec, CLSID_CMpegVideoCodec>();
+		CoRegisterClassObject(CLSID_CMpegVideoCodec, fac_mpegvideo, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
+	}
 	
-	IClassFactory* fac_mpegvideo = new ClassFactory<CMpegVideoCodec, CLSID_CMpegVideoCodec>();
-	CoRegisterClassObject(CLSID_CMpegVideoCodec, fac_mpegvideo, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
-	
+	// no real way to check if this one needs to be patched, but not needed either,
+	// it calls the original functions and only intervenes if they misbehave
 	IClassFactory* fac_vmr9 = new ClassFactory<CVideoMixingRenderer9, CLSID_VideoMixingRenderer9>();
 	CoRegisterClassObject(CLSID_VideoMixingRenderer9, fac_vmr9, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
 	
@@ -2301,6 +2306,7 @@ static void very_unsafe_init()
 	if (!mod)
 		return;
 	
+	// I can't think of any real way to detect if this one needs to be monkeypatched...
 	uint8_t* base_addr = (uint8_t*)mod;
 	IMAGE_DOS_HEADER* head_dos = (IMAGE_DOS_HEADER*)base_addr;
 	IMAGE_NT_HEADERS* head_nt = (IMAGE_NT_HEADERS*)(base_addr + head_dos->e_lfanew);
@@ -2310,6 +2316,7 @@ static void very_unsafe_init()
 	void* find_function = (void*)GetProcAddress;
 	//void* find_function = (void*)GetProcAddress(GetModuleHandle("kernel32.dll"), "GetProcAddress"); // in case your compiler sucks
 	void* replace_function = (void*)myGetProcAddress;
+	bool found_function = false;
 	
 	while (imports->Name)
 	{
@@ -2320,16 +2327,20 @@ static void very_unsafe_init()
 			{
 				// can't just *out = replace_function, import table is read only
 				WriteProcessMemory(GetCurrentProcess(), out, &replace_function, sizeof(replace_function), NULL);
+				found_function = true;
 			}
 			out++;
 		}
 		imports++;
 	}
 	
-	// only register these if the fake WMCreateSyncReader can be injected
-	IClassFactory* fac_dmo = new AggregatingClassFactory<fake_DMOObject, CLSID_CWMVDecMediaObject>();
-	CoRegisterClassObject(CLSID_CWMVDecMediaObject, fac_dmo, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
-	CoRegisterClassObject(CLSID_CWMADecMediaObject, fac_dmo, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
+	if (found_function)
+	{
+		// only register these if the fake WMCreateSyncReader can be injected
+		IClassFactory* fac_dmo = new AggregatingClassFactory<fake_DMOObject, CLSID_CWMVDecMediaObject>();
+		CoRegisterClassObject(CLSID_CWMVDecMediaObject, fac_dmo, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
+		CoRegisterClassObject(CLSID_CWMADecMediaObject, fac_dmo, CLSCTX_INPROC_SERVER, REGCLS_MULTIPLEUSE, &ignore);
+	}
 }
 
 #ifdef __i386__
