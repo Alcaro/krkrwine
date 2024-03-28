@@ -224,10 +224,10 @@ int main()
 	IBaseFilter* asyncReader = make_filter(CLSID_AsyncReader);
 	CComPtr<IFileSourceFilter> asyncReaderFsf;
 	require(20, asyncReader->QueryInterface(&asyncReaderFsf));
-	require(21, asyncReaderFsf->Load(L"video.mpg", nullptr), "failed to open video.mpg, does the file exist?");
+	require(21, asyncReaderFsf->Load(L"/home/walrus/z/wine-git/weird-offset.mpg", nullptr), "failed to open video.mpg, does the file exist?");
 	
 	IBaseFilter* mpegdec = try_make_filter(CLSID_CMpegVideoCodec);
-	if (mpegdec)
+	if (mpegdec && false)
 	{
 		IBaseFilter* demux = chain_tail(asyncReader, CLSID_MPEG1Splitter);
 		chain(demux, mpegdec, CLSID_VideoMixingRenderer9);

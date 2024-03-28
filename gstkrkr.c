@@ -256,15 +256,19 @@ static gboolean gst_krkr_video_sink_event(GstPad* pad, GstObject* parent, GstEve
 
 static GstFlowReturn gst_krkr_video_sink_chain(GstPad* pad, GstObject* parent, GstBuffer* buf)
 {
+//fprintf(stderr, "gstkrkr: reading\n");
 	GstKrkrPlMpegVideo* filter = GST_KRKRPLMPEG_VIDEO(parent);
 	for (size_t n=0;n<gst_buffer_n_memory(buf);n++)
 	{
 		GstMapInfo meminf;
 		GstMemory* mem = gst_buffer_get_memory(buf, n);
 		mem = gst_memory_make_mapped(mem, &meminf, GST_MAP_READ);
+//fprintf(stderr, "gstkrkr: read %zu bytes\n", meminf.size);
 		plm_buffer_write(filter->buf, meminf.data, meminf.size);
+		gst_memory_unmap(mem, &meminf);
 		gst_memory_unref(mem);
 	}
+	gst_buffer_unref(buf);
 	
 	while (true)
 	{
@@ -294,7 +298,7 @@ static GstFlowReturn gst_krkr_video_sink_chain(GstPad* pad, GstObject* parent, G
 		
 		size_t buflen = frame->width*frame->height*12/8;
 		uint8_t* ptr = g_malloc(buflen);
-		GstBuffer* buf = gst_buffer_new_wrapped(ptr, buflen);
+		GstBuffer* buf2 = gst_buffer_new_wrapped(ptr, buflen);
 		for (int y=0;y<frame->height;y++)
 		{
 			memcpy(ptr, frame->y.data + frame->y.width*y, frame->width);
@@ -311,11 +315,11 @@ static GstFlowReturn gst_krkr_video_sink_chain(GstPad* pad, GstObject* parent, G
 			ptr += frame->width/2;
 		}
 		
-		buf->pts = frame->time * 1000000000;
-		buf->dts = frame->time * 1000000000;
-		buf->duration = 1000000000 / plm_video_get_framerate(filter->decode);
-//fprintf(stderr, "gstkrkr: send frame, %lu bytes\n", gst_buffer_get_size(buf));
-		gst_pad_push(filter->srcpad, buf);
+		buf2->pts = frame->time * 1000000000;
+		buf2->dts = frame->time * 1000000000;
+		buf2->duration = 1000000000 / plm_video_get_framerate(filter->decode);
+//fprintf(stderr, "gstkrkr: send frame, %zu bytes\n", gst_buffer_get_size(buf2));
+		gst_pad_push(filter->srcpad, buf2);
 	}
 	
 	return GST_FLOW_OK;

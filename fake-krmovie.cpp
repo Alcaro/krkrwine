@@ -5,7 +5,19 @@
 // (I'm not sure if headers and other required interopability data is covered by copyright, but better safe than sorry.)
 // (I also don't know if Kirikiri is 2.0 only or 2.0 or later, so I'll pick the safe choice.)
 
-//#define DOIT
+#ifdef __MINGW32__
+#  define _FILE_OFFSET_BITS 64
+// mingw *really* wants to define its own printf/scanf, which adds ~20KB random stuff to the binary
+// (on some 32bit mingw versions, it also adds a dependency on libgcc_s_sjlj-1.dll)
+// extra kilobytes and dlls is the opposite of what I want, and my want is stronger, so here's some shenanigans
+// comments say libstdc++ demands a POSIX printf, but I don't use libstdc++'s text functions, so I don't care
+#  define __USE_MINGW_ANSI_STDIO 0 // trigger a warning if it's enabled already - probably wrong include order
+#  include <cstdbool>              // include some random c++ header; they all include <bits/c++config.h>,
+#  undef __USE_MINGW_ANSI_STDIO    // which ignores my #define above and sets this flag; re-clear it before including <stdio.h>
+#  define __USE_MINGW_ANSI_STDIO 0 // (subsequent includes of c++config.h are harmless, there's an include guard)
+#endif
+
+#define DOIT
 
 #define STRSAFE_NO_DEPRECATE
 #define INITGUID
@@ -15,6 +27,22 @@
 #include <dshow.h>
 #include <d3d9.h>
 #include <vmr9.h>
+
+// can't use stdout from wine/proton since 8.12 https://gitlab.winehq.org/wine/wine/-/commit/dcf0bf1f383f8429136cb761f5170a04503a297b
+static void my_puts(const char * a, bool linebreak=true)
+{
+	static int __cdecl (*__wine_dbg_output)( const char *str );
+	if (!__wine_dbg_output)
+		__wine_dbg_output = (decltype(__wine_dbg_output))GetProcAddress(GetModuleHandle("ntdll.dll"), "__wine_dbg_output");
+	if (__wine_dbg_output)
+	{
+		__wine_dbg_output(a);
+		if (linebreak)
+		 __wine_dbg_output("\n");
+	}
+}
+#define puts my_puts
+#define printf(...) do { char my_buf[4096]; sprintf(my_buf, __VA_ARGS__); my_puts(my_buf, false); } while(0)
 
 #ifdef __i386__
 // needs some extra shenanigans to kill the stdcall @12 suffix
@@ -322,7 +350,6 @@ BOOL __stdcall myMoveWindow(HWND hWnd, int X, int Y, int nWidth, int nHeight, BO
 	return MoveWindow(hWnd, X, Y, nWidth, nHeight, bRepaint);
 }
 
-IDirect3DDevice9* g_d3ddev;
 bool dump_texture(IDirect3DSurface9* renderTarget, const char * filename)
 {
 	HRESULT hr;
@@ -500,14 +527,15 @@ public:
 	virtual void __stdcall GetStatus(tTVPVideoStatus* status) { puts("fancy_iTVPVideoOverlay GetStatus"); orig_overlay->GetStatus(status); }
 	virtual void __stdcall GetEvent(long* evcode, long* param1, long* param2, bool* got)
 	{
-		//puts("fancy_iTVPVideoOverlay GetEvent");
+		puts("fancy_iTVPVideoOverlay GetEvent");
 		orig_overlay->GetEvent(evcode, param1, param2, got);
+		printf("ev %ld %ld %ld %d\n", *evcode, *param1, *param2, *got);
 	}
 
 // Start:	Add:	T.Imoto
 	virtual void __stdcall FreeEventParams(long evcode, long param1, long param2)
 	{
-		//puts("fancy_iTVPVideoOverlay FreeEventParams");
+		puts("fancy_iTVPVideoOverlay FreeEventParams");
 		orig_overlay->FreeEventParams(evcode, param1, param2);
 	}
 
@@ -515,7 +543,7 @@ public:
 	virtual void __stdcall SetFrame( int f ) { puts("fancy_iTVPVideoOverlay SetFrame"); orig_overlay->SetFrame(f); }
 	virtual void __stdcall GetFrame( int* f )
 	{
-		//puts("fancy_iTVPVideoOverlay GetFrame");
+		puts("fancy_iTVPVideoOverlay GetFrame");
 		orig_overlay->GetFrame(f);
 printf("frame=%d\n", *f);
 	}

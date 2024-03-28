@@ -28,31 +28,34 @@ krkrwine-i386.dll: krkrwine.cpp Makefile
 	$(MINGW32) krkrwine.cpp -shared -fPIC -o krkrwine-i386.dll -lole32
 
 prepare:
-	cp $(EGGROLL)/files/lib64/gstreamer-1.0/libgstmpegpsdemux.so  Glorious-Eggroll/x86_64-libgstmpegpsdemux.so
-	cp $(EGGROLL)/files/lib64/gstreamer-1.0/libgstasf.so          Glorious-Eggroll/x86_64-libgstasf.so
-	cp $(EGGROLL)/files/lib64/libgstcodecparsers-1.0.so.0         Glorious-Eggroll/x86_64-libgstcodecparsers-1.0.so.0
-	cp $(EGGROLL)/files/lib64/libavcodec.so.58                    Glorious-Eggroll/x86_64-libavcodec.so.58
-	cp $(EGGROLL)/files/lib64/libavutil.so.56                     Glorious-Eggroll/x86_64-libavutil.so.56
-	cp $(EGGROLL)/files/lib64/libavfilter.so.7                    Glorious-Eggroll/x86_64-libavfilter.so.7
-	cp $(EGGROLL)/files/lib64/libavformat.so.58                   Glorious-Eggroll/x86_64-libavformat.so.58
-	cp $(EGGROLL)/files/lib64/libavdevice.so.58                   Glorious-Eggroll/x86_64-libavdevice.so.58
-	cp $(EGGROLL)/files/lib64/libswresample.so.3                  Glorious-Eggroll/x86_64-libswresample.so.3
-	cp $(EGGROLL)/files/lib64/libswscale.so.5                     Glorious-Eggroll/x86_64-libswscale.so.5
-	cp $(EGGROLL)/files/lib/gstreamer-1.0/libgstmpegpsdemux.so    Glorious-Eggroll/i386-libgstmpegpsdemux.so
-	cp $(EGGROLL)/files/lib/gstreamer-1.0/libgstasf.so            Glorious-Eggroll/i386-libgstasf.so
-	cp $(EGGROLL)/files/lib/libgstcodecparsers-1.0.so.0           Glorious-Eggroll/i386-libgstcodecparsers-1.0.so.0
-	cp $(EGGROLL)/files/lib/libavcodec.so.58                      Glorious-Eggroll/i386-libavcodec.so.58
-	cp $(EGGROLL)/files/lib/libavutil.so.56                       Glorious-Eggroll/i386-libavutil.so.56
-	cp $(EGGROLL)/files/lib/libavfilter.so.7                      Glorious-Eggroll/i386-libavfilter.so.7
-	cp $(EGGROLL)/files/lib/libavformat.so.58                     Glorious-Eggroll/i386-libavformat.so.58
-	cp $(EGGROLL)/files/lib/libavdevice.so.58                     Glorious-Eggroll/i386-libavdevice.so.58
-	cp $(EGGROLL)/files/lib/libswresample.so.3                    Glorious-Eggroll/i386-libswresample.so.3
-	cp $(EGGROLL)/files/lib/libswscale.so.5                       Glorious-Eggroll/i386-libswscale.so.5
+	mkdir Glorious-Eggroll/
+	cp $(EGGROLL)/files/lib64/gstreamer-1.0/libgstmpegpsdemux.so        Glorious-Eggroll/x86_64-libgstmpegpsdemux.so
+	cp $(EGGROLL)/files/lib64/gstreamer-1.0/libgstasf.so                Glorious-Eggroll/x86_64-libgstasf.so
+	cp $(EGGROLL)/files/lib64/gstreamer-1.0/libgstvideoparsersbad.so    Glorious-Eggroll/x86_64-libgstvideoparsersbad.so
+	cp $(EGGROLL)/files/lib64/libgstcodecparsers-1.0.so.0               Glorious-Eggroll/x86_64-libgstcodecparsers-1.0.so.0
+	cp $(EGGROLL)/files/lib64/libavcodec.so.58                          Glorious-Eggroll/x86_64-libavcodec.so.58
+	cp $(EGGROLL)/files/lib64/libavutil.so.56                           Glorious-Eggroll/x86_64-libavutil.so.56
+	cp $(EGGROLL)/files/lib64/libavfilter.so.7                          Glorious-Eggroll/x86_64-libavfilter.so.7
+	cp $(EGGROLL)/files/lib64/libavformat.so.58                         Glorious-Eggroll/x86_64-libavformat.so.58
+	cp $(EGGROLL)/files/lib64/libavdevice.so.58                         Glorious-Eggroll/x86_64-libavdevice.so.58
+	cp $(EGGROLL)/files/lib64/libswresample.so.3                        Glorious-Eggroll/x86_64-libswresample.so.3
+	cp $(EGGROLL)/files/lib64/libswscale.so.5                           Glorious-Eggroll/x86_64-libswscale.so.5
+	cp $(EGGROLL)/files/lib/gstreamer-1.0/libgstmpegpsdemux.so          Glorious-Eggroll/i386-libgstmpegpsdemux.so
+	cp $(EGGROLL)/files/lib/gstreamer-1.0/libgstasf.so                  Glorious-Eggroll/i386-libgstasf.so
+	cp $(EGGROLL)/files/lib/lib/gstreamer-1.0/libgstvideoparsersbad.so  Glorious-Eggroll/i386-libgstvideoparsersbad.so
+	cp $(EGGROLL)/files/lib/libgstcodecparsers-1.0.so.0                 Glorious-Eggroll/i386-libgstcodecparsers-1.0.so.0
+	cp $(EGGROLL)/files/lib/libavcodec.so.58                            Glorious-Eggroll/i386-libavcodec.so.58
+	cp $(EGGROLL)/files/lib/libavutil.so.56                             Glorious-Eggroll/i386-libavutil.so.56
+	cp $(EGGROLL)/files/lib/libavfilter.so.7                            Glorious-Eggroll/i386-libavfilter.so.7
+	cp $(EGGROLL)/files/lib/libavformat.so.58                           Glorious-Eggroll/i386-libavformat.so.58
+	cp $(EGGROLL)/files/lib/libavdevice.so.58                           Glorious-Eggroll/i386-libavdevice.so.58
+	cp $(EGGROLL)/files/lib/libswresample.so.3                          Glorious-Eggroll/i386-libswresample.so.3
+	cp $(EGGROLL)/files/lib/libswscale.so.5                             Glorious-Eggroll/i386-libswscale.so.5
 
 
 krkrwine.tar.gz: | Glorious-Eggroll/x86_64-libgstmpegpsdemux.so
 	$(MAKE) clean
-	$(MAKE) OPT=1
+	$(MAKE) OPT=1 -j4
 	-rm krkrwine.tar.gz
 	tar -czvf krkrwine.tar.gz --transform='s%^%krkrwine/%' --show-transformed-names README.md install.py gstkrkr-i386.so gstkrkr-x86_64.so krkrwine-i386.dll krkrwine-x86_64.dll Glorious-Eggroll/
 
@@ -105,11 +108,11 @@ wai:
 	ln -s $(shell realpath .)/krmovie.dll /games/wine/waga/waga/plugin/krmovie.dll
 
 X1_HOME = /home/walrus/mount/x1/home/x1/
-X1_PROTON = $(X1_HOME)steam/steamapps/common/"Proton 8.0"/
-X1_PFX = $(X1_PROTON)dist/share/default_pfx/
-X1_DLL = $(X1_PFX)drive_c/windows/syswow64/krkrwine.dll
+X1_PROTON = $(X1_HOME)steam/steamapps/common/"Proton 9.0 (Beta)"/
+X1_TARGET = $(X1_PROTON)krkrwine/
+X1_DLL = $(X1_TARGET)krkrwine-i386.dll
+X1_GST = $(X1_TARGET)gstkrkr-i386.so
 X1_EXE = $(X1_HOME)Desktop/a.exe
-X1_GST = $(X1_PROTON)dist/lib/gstreamer-1.0/gstkrkr-i386.so
 ax1: run32.exe krkrwine-i386.dll gstkrkr-i386.so
 	-rm $(X1_DLL) $(X1_EXE) $(X1_GST)
 	cp krkrwine-i386.dll $(X1_DLL)
@@ -119,12 +122,15 @@ ax1: run32.exe krkrwine-i386.dll gstkrkr-i386.so
 installx1: all
 	./install.py $(X1_PROTON)
 
-installx2: all
-	./install.py /home/walrus/mount/x2/home/x2/steam/steamapps/common/"Proton 8.0"/
+X2_HOME = /home/walrus/mount/x2/home/x2/
+X2_PROTON = $(X2_HOME)steam/steamapps/common/"Proton 9.0 (Beta)"/
+X2_WAGA = $(X2_HOME)steam/steamapps/common/"WAGAMAMA HIGH SPEC"
 
-X2_WAGAPATH = /home/walrus/mount/x2/home/x2/steam/steamapps/common/"WAGAMAMA HIGH SPEC"
+installx2: all
+	./install.py $(X2_PROTON)
+
 waux2:
-	mv $(X2_WAGAPATH)/plugin/_rmovie.dll $(X2_WAGAPATH)/plugin/krmovie.dll
+	mv $(X2_WAGA)/plugin/_rmovie.dll $(X2_WAGA)/plugin/krmovie.dll
 waix2: krmovie.dll
-	mv -n $(X2_WAGAPATH)/plugin/krmovie.dll $(X2_WAGAPATH)/plugin/_rmovie.dll
-	cp krmovie.dll $(X2_WAGAPATH)/plugin/krmovie.dll
+	mv -n $(X2_WAGA)/plugin/krmovie.dll $(X2_WAGA)/plugin/_rmovie.dll
+	cp krmovie.dll $(X2_WAGA)/plugin/krmovie.dll

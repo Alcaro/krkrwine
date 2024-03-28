@@ -255,7 +255,7 @@ I don't like heuristics. I'm a thoroughbred pessimist; I keep assuming the worst
 
 But in this case, it doesn't seem like I have any choice.
 
-I'll have to enumerate the program's windows, and check if there's exactly one visible. If yes, and this window has visible child windows, that's the target; if none, multiple, or no children, disable this functionality, to minimize the risk of breaking anything else.
+I'll have to enumerate the program's windows, and check if there's exactly one visible. If yes, and this window has visible child windows, that's the target; if none, or multiple, disable this functionality, to minimize the risk of breaking anything else.
 
 A few glitches later, mostly caused by forgetting that the original PresentImage does more than just submit the swap chain, and it works.
 
@@ -265,7 +265,7 @@ Some of it is because I screwed up the threading. This is easy to fix with some 
 
 Some of it is due to reference cycles and other refcounting accidents. I don't have good debugging tools for those, but the bad ones (shotgun debugging) worked well enough. (Some filters held references to secondary interfaces on the filter graph - filters are not allowed to reference the graph, that's a reference cycle.)
 
-Some of it a segfault somewhere during shutdown. Or, well, whatever this is a symptom of.
+Some of it is a segfault somewhere during shutdown. Or, well, whatever this is a symptom of.
 
 ![image](making/segfault.png)
 
@@ -609,7 +609,7 @@ and now everything works. And I found a bug in krkrwine.dll - it never unloads. 
 
 It even explains why it doesn't break in Wine - because my custom krmovie.dll never unloads the real one. My wrapper gets unloaded and reloaded, but that does nothing.
 
-The easiest workaround is simply LoadLibrary krmovie.dll instead of GetProcAddress, so it too remains loaded.
+The easiest workaround is simply LoadLibrary krmovie.dll instead of GetModuleHandle, then leak the reference, so it too remains loaded forever.
 
 Now, let's see if that was enough... will this VN finally run correctly?
 
@@ -626,9 +626,9 @@ Checking the Kirikiri source code reveals ...that suspicious-looking ThrowDShowE
 
 ...nope, that just tells me
 
-致命的なエラーが発生しました。
-ファイル : custom.ks   行 : 93
-タグ : 不明 ( ← エラーの発生した前後のタグを示している場合もあります )
+致命的なエラーが発生しました。  
+ファイル : custom.ks   行 : 93  
+タグ : 不明 ( ← エラーの発生した前後のタグを示している場合もあります )  
 Cannot convert the variable type ((void) to Object)
 
 which, while good to know, isn't quite the result I was hoping for.

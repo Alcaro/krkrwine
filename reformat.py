@@ -1,74 +1,57 @@
 #!/usr/bin/env python3
 
-# This script takes a bunch of function prototypes copypasted from MSDN (or whatever it's called these days), and reformats them to valid C++.
+# This script takes a bunch of function prototypes copypasted from MSDN (or whatever it's called these days),
+# or function pointers copied from a Wine vtable struct, and reformats them to valid C++.
 # The functions will either call the same function on a parent object, or just return an error.
 
-parent_name = ""
+parent_name = "the_real_one"
+debug_name = "pin"
 
 text = """
 
 
-HRESULT CheckCapabilities(
-  [in, out] DWORD *pCapabilities
-);HRESULT ConvertTimeFormat(
-  [out] LONGLONG   *pTarget,
-  [in]  const GUID *pTargetFormat,
-  [in]  LONGLONG   Source,
-  [in]  const GUID *pSourceFormat
-);
+    HRESULT (STDMETHODCALLTYPE *GetAllocator)(
+        IMemInputPin *This,
+        IMemAllocator **ppAllocator);
 
-HRESULT GetAvailable(
-  [out] LONGLONG *pEarliest,
-  [out] LONGLONG *pLatest
-);
+    HRESULT (STDMETHODCALLTYPE *NotifyAllocator)(
+        IMemInputPin *This,
+        IMemAllocator *pAllocator,
+        BOOL bReadOnly);
 
-HRESULT GetCapabilities(
-  [out] DWORD *pCapabilities
-);HRESULT GetCurrentPosition(
-  [out] LONGLONG *pCurrent
-);
-HRESULT GetDuration(
-  [out] LONGLONG *pDuration
-);HRESULT GetPositions(
-  [out] LONGLONG *pCurrent,
-  [out] LONGLONG *pStop
-);HRESULT GetPreroll(
-  [out] LONGLONG *pllPreroll
-);HRESULT GetRate(
-  [out] double *pdRate
-);HRESULT GetStopPosition(
-  [out] LONGLONG *pStop
-);
+    HRESULT (STDMETHODCALLTYPE *GetAllocatorRequirements)(
+        IMemInputPin *This,
+        ALLOCATOR_PROPERTIES *pProps);
 
-HRESULT GetTimeFormat(
-  [out] GUID *pFormat
-);HRESULT IsFormatSupported(
-  [in] const GUID *pFormat
-);HRESULT IsUsingTimeFormat(
-  [in] const GUID *pFormat
-);HRESULT QueryPreferredFormat(
-  [out] GUID *pFormat
-);
+    HRESULT (STDMETHODCALLTYPE *Receive)(
+        IMemInputPin *This,
+        IMediaSample *pSample);
 
-HRESULT SetPositions(
-  [in, out] LONGLONG *pCurrent,
-  [in]      DWORD    dwCurrentFlags,
-  [in, out] LONGLONG *pStop,
-  [in]      DWORD    dwStopFlags
-);HRESULT SetRate(
-  [in] double dRate
-);HRESULT SetTimeFormat(
-  [in] const GUID *pFormat
-);
+    HRESULT (STDMETHODCALLTYPE *ReceiveMultiple)(
+        IMemInputPin *This,
+        IMediaSample **pSamples,
+        LONG nSamples,
+        LONG *nSamplesProcessed);
+
+    HRESULT (STDMETHODCALLTYPE *ReceiveCanBlock)(
+        IMemInputPin *This);
+
 
 
 """
+
+if debug_name:
+	debug_name += " "
 
 import re
 for fn in text.replace("\n", "").split(";"):
 	if not fn:
 		continue
-	ret,name,args = re.match(r" *(.*) ([^ ]+)\((.*)\)", fn).groups()
+	fn = fn.replace("STDMETHODCALLTYPE","").replace("virtual "," ")
+	try:
+		ret,name,args = re.match(r" *(.*) \( *\*([^ ]+)\)\([^,]+This(?:,|(?=\)))(.*)\)", fn).groups()
+	except Exception:
+		ret,name,args = re.match(r" *(.*) ([^ ]+)\((.*)\)", fn).groups()
 	args = re.sub(r"\[[^\]]+\]", "", args)
 	args = args.split(',')
 	for n,arg in enumerate(args):
@@ -77,7 +60,7 @@ for fn in text.replace("\n", "").split(";"):
 	# print("------")
 	# print(ret,name,args)
 	if args != ['']:
-		args_untyped = ','.join(re.search("[A-Za-z0-9_a+]+$", a)[0] for a in args)
+		args_untyped = ', '.join(re.search("[A-Za-z0-9_a+]+$", a)[0] for a in args)
 	else:
 		args_untyped = ''
 	# print(args_untyped)
@@ -85,6 +68,9 @@ for fn in text.replace("\n", "").split(";"):
 		process = 'return '+parent_name+'->'+name+'('+args_untyped+');'
 	else:
 		process = 'return E_OUTOFMEMORY;'
-	fn = ret+' STDMETHODCALLTYPE '+name+'('+', '.join(args)+') override\n\t{ puts("'+name+'"); '+process+' }'
+	debugprint = ""
+	if debug_name:
+		debugprint = 'puts("'+debug_name+name+'"); '
+	fn = ret+' STDMETHODCALLTYPE '+name+'('+', '.join(args)+') override\n\t{ '+debugprint+process+' }'
 	fn = re.sub(" +", " ", fn).replace("( ", "(").replace(" )", ")").replace(" *", "* ").replace(" *", "* ")
 	print(fn)
